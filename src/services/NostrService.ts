@@ -1,4 +1,5 @@
 import { relayInit, SimplePool, Event } from 'nostr-tools';
+import { npubEncode } from 'nostr-tools/nip19'; // ADD THIS
 
 export interface NostrFollower {
   pubkey: string;
@@ -17,6 +18,15 @@ export interface GameChallenge {
   buyIn: number;
   timestamp: number;
   status: 'pending' | 'accepted' | 'declined' | 'active';
+}
+
+export function formatPubkey(hexPubkey: string, type: 'npub' | 'short' = 'short'): string {
+  if (type === 'npub') {
+    return npubEncode(hexPubkey);
+  }
+  // Short format: npub1...xyz (first 8 + last 4 of npub)
+  const npub = npubEncode(hexPubkey);
+  return `${npub.substring(0, 12)}...${npub.substring(npub.length - 4)}`;
 }
 
 class NostrService {
@@ -71,7 +81,7 @@ class NostrService {
       });
 
       // Create follower objects
-      const followers: NostrFollower[] = followedPubkeys.slice(0, 50).map(pubkey => ({
+      const followers: NostrFollower[] = followedPubkeys.slice(0, 100).map(pubkey => ({
         pubkey,
         profile: profileMap.get(pubkey) || {
           name: `User ${pubkey.substring(0, 8)}`,

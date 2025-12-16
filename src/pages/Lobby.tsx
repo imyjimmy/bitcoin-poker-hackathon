@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NostrAuthService } from '../services/NostrAuthService';
-import { nostrService, NostrFollower, GameChallenge } from '../services/NostrService';
+import { nostrService, NostrFollower, GameChallenge, formatPubkey } from '../services/NostrService';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export default function Lobby() {
     loadData(info.pubkey);
 
     // Subscribe to incoming challenges
-    const sub = nostrService.subscribeToIncomingChallenges(info.pubkey, (challenge) => {
+    const sub = nostrService.subscribeToIncomingChallenges(info.pubkey, (challenge: any) => {
       setIncomingChallenges(prev => [challenge, ...prev]);
     });
 
@@ -212,7 +212,8 @@ function FollowerCard({
           {follower.profile?.display_name || follower.profile?.name || 'Anonymous'}
         </p>
         <p className="text-xs text-slate-500 truncate">
-          {follower.pubkey.substring(0, 16)}...
+          {/* {follower.pubkey.substring(0, 16)}... */}
+          {formatPubkey(follower.pubkey, 'short')}
         </p>
       </div>
       <button

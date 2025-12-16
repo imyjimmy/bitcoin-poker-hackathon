@@ -13,7 +13,7 @@ export default function Login() {
     
     try {
       await NostrAuthService.login();
-      navigate('/dashboard');
+      navigate('/lobby');
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please try again.');
       console.error('Login error:', err);
