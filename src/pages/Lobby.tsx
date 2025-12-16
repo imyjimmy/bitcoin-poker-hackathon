@@ -141,6 +141,12 @@ export default function Lobby() {
                       key={challenge.challengeId}
                       challenge={challenge}
                       onAccept={() => handleAcceptChallenge(challenge)}
+                      onDecline={() => {
+                        // Remove from local state
+                        setIncomingChallenges(prev => 
+                          prev.filter(c => c.challengeId !== challenge.challengeId)
+                        );
+                      }}
                     />
                   ))}
                 </div>
@@ -232,12 +238,15 @@ function FollowerCard({
 }
 
 // Challenge Card Component
+// Challenge Card Component
 function ChallengeCard({ 
   challenge, 
-  onAccept 
+  onAccept,
+  onDecline  // ADD THIS
 }: { 
   challenge: GameChallenge; 
   onAccept: () => void;
+  onDecline: () => void;  // ADD THIS
 }) {
   const [profile, setProfile] = useState<any>(null);
 
@@ -261,6 +270,16 @@ function ChallengeCard({
             {challenge.challenger.substring(0, 16)}...
           </p>
         </div>
+        {/* ADD DECLINE BUTTON IN TOP RIGHT */}
+        <button
+          onClick={onDecline}
+          className="text-slate-500 hover:text-red-400 transition-colors"
+          title="Decline"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       
       <div className="mb-3 pb-3 border-b border-slate-700">
