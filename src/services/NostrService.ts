@@ -1,4 +1,4 @@
-import { relayInit, SimplePool, Event } from 'nostr-tools';
+import { SimplePool, Event, type Filter } from 'nostr-tools';
 import { npubEncode } from 'nostr-tools/nip19'; // ADD THIS
 
 export interface NostrFollower {
@@ -100,7 +100,7 @@ class NostrService {
     const challengeId = `game-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     
     const event = {
-      kind: 30000, // Custom game event
+      kind: 30001, // Custom game event
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ['t', 'lightning-poker'],
@@ -129,36 +129,47 @@ class NostrService {
     return challengeId;
   }
 
+  /**
+   * Fetch incoming challenges (only recent ones)
+   */
   async fetchIncomingChallenges(pubkey: string): Promise<GameChallenge[]> {
-    try {
-      const events = await this.pool.querySync(this.relays, {
-        kinds: [30000],
-        '#p': [pubkey],
-        '#t': ['lightning-poker'],
-        limit: 20
-      });
+    const ONE_HOUR_AGO = Math.floor(Date.now() / 1000) - (60 * 60);
+    
+    const events = await this.pool.querySync(
+      this.relays,
+      [
+        {
+          kinds: [30001],
+          '#p': [pubkey],
+          '#t': ['lightning-poker'],
+          since: ONE_HOUR_AGO,  // ADD THIS - only recent challenges
+        }
+      ]
+    );
 
-      const challenges: GameChallenge[] = events.map(event => {
-        try {
-          const content = JSON.parse(event.content);
-          return {
+    console.log(`📬 Found ${events.length} recent challenges (last hour)`);
+
+    const challenges: GameChallenge[] = [];
+    
+    for (const event of events) {
+      try {
+        const content = JSON.parse(event.content);
+        if (content.type === 'CHALLENGE') {
+          challenges.push({
             challengeId: content.challengeId,
             challenger: content.challenger,
             challenged: content.challenged,
             buyIn: content.buyIn,
             timestamp: content.timestamp,
-            status: 'pending' as const
-          };
-        } catch (e) {
-          return null;
+            status: 'pending'
+          });
         }
-      }).filter(Boolean) as GameChallenge[];
-
-      return challenges;
-    } catch (error) {
-      console.error('Error fetching challenges:', error);
-      return [];
+      } catch (e) {
+        console.error('Error parsing challenge:', e);
+      }
     }
+
+    return challenges;
   }
 
   subscribeToIncomingChallenges(pubkey: string, callback: (challenge: GameChallenge) => void) {
@@ -166,12 +177,12 @@ class NostrService {
       this.relays,
       [
         {
-          kinds: [30000],
+          kinds: [30001],
           '#p': [pubkey],
           '#t': ['lightning-poker'],
           since: Math.floor(Date.now() / 1000)
         }
-      ],
+      ] as any,  // Move the 'as any' here instead
       {
         onevent(event) {
           try {

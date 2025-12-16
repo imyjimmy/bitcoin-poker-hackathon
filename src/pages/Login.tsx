@@ -30,7 +30,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-lightning-500 to-lightning-600 rounded-2xl mb-6 shadow-2xl shadow-lightning-500/50">
             <span className="text-4xl">⚡</span>
           </div>
-          <h1 className="text-4xl font-bold mb-2 text-gradient">Lightning Wallet</h1>
+          <h1 className="text-4xl font-bold mb-2 text-gradient">Lightning Poker</h1>
           <p className="text-slate-400 text-lg">Testnet Edition</p>
         </div>
 

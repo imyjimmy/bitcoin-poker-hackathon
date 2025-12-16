@@ -19,8 +19,10 @@ class GameService {
    * Publish a game event to Nostr
    */
   async publishGameEvent(event: GameEvent): Promise<void> {
+    console.log('🔵 PUBLISHING EVENT:', event.type, event.data);
+    
     const nostrEvent = {
-      kind: 30001, // Custom game action event
+      kind: 30001,
       created_at: Math.floor(event.timestamp / 1000),
       tags: [
         ['game', event.gameId],
@@ -35,15 +37,74 @@ class GameService {
     }
 
     const signedEvent = await window.nostr.signEvent(nostrEvent);
-    await this.pool.publish(this.relays, signedEvent);
+    console.log('✅ Signed event:', signedEvent.id);
     
-    console.log('Published game event:', event.type);
+    const results = await Promise.allSettled(
+      this.relays.map(relay => this.pool.publish([relay], signedEvent))
+    );
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        console.log(`✅ Published to ${this.relays[index]}`);
+      } else {
+        console.error(`❌ Failed to publish to ${this.relays[index]}:`, result.reason);
+      }
+    });
+    
+    console.log('🔵 PUBLISH COMPLETE');
   }
 
   /**
    * Subscribe to game events for a specific game
+   * Fetches historical events first, then subscribes to new ones
    */
-  subscribeToGameEvents(gameId: string, callback: (event: GameEvent) => void) {
+  async subscribeToGameEvents(
+    gameId: string, 
+    callback: (event: GameEvent) => void,
+    onHistoryLoaded?: () => void
+  ) {
+    console.log('🟢 SUBSCRIBING to game:', gameId);
+    
+    // STEP 1: Fetch historical events
+    console.log('📜 Fetching history from:', this.relays);
+    
+    const historicalEvents = await this.pool.querySync(
+      this.relays,
+      [
+        {
+          kinds: [30001],
+          '#game': [gameId],
+          '#t': ['lightning-poker'],
+        }
+      ]
+    );
+    
+    console.log(`📜 Found ${historicalEvents.length} historical events`);
+    
+    // Sort and apply
+    historicalEvents.sort((a, b) => a.created_at - b.created_at);
+    
+    for (const nostrEvent of historicalEvents) {
+      try {
+        const gameEvent = JSON.parse(nostrEvent.content) as GameEvent;
+        console.log('📜 REPLAYING:', gameEvent.type, gameEvent.data);
+        callback(gameEvent);
+      } catch (e) {
+        console.error('❌ Error parsing historical event:', e);
+      }
+    }
+    
+    if (onHistoryLoaded) {
+      onHistoryLoaded();
+    }
+    
+    // STEP 2: Subscribe to new events
+    console.log('🔔 Starting subscription with filter:', {
+      kinds: [30001],
+      '#game': [gameId],
+      '#t': ['lightning-poker'],
+    });
+
     const sub = this.pool.subscribeMany(
       this.relays,
       [
@@ -52,15 +113,28 @@ class GameService {
           '#game': [gameId],
           '#t': ['lightning-poker'],
         }
-      ],
+      ] as any,
       {
         onevent(nostrEvent) {
+          console.log('🔔 RAW EVENT RECEIVED:', {
+            id: nostrEvent.id,
+            kind: nostrEvent.kind,
+            tags: nostrEvent.tags,
+            game: nostrEvent.tags.find(t => t[0] === 'game')?.[1],
+          });
           try {
             const gameEvent = JSON.parse(nostrEvent.content) as GameEvent;
+            console.log('🔔 PARSED EVENT:', gameEvent.type, gameEvent.data);
             callback(gameEvent);
           } catch (e) {
-            console.error('Error parsing game event:', e);
+            console.error('❌ Error parsing event:', e);
           }
+        },
+        oneose() {
+          console.log('✅ Subscription established (EOSE received)');
+        },
+        onclose() {
+          console.log('❌ Subscription closed!');
         }
       }
     );

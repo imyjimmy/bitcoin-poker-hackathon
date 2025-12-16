@@ -238,21 +238,26 @@ function FollowerCard({
 }
 
 // Challenge Card Component
-// Challenge Card Component
 function ChallengeCard({ 
   challenge, 
   onAccept,
-  onDecline  // ADD THIS
+  onDecline
 }: { 
   challenge: GameChallenge; 
   onAccept: () => void;
-  onDecline: () => void;  // ADD THIS
+  onDecline: () => void;
 }) {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     nostrService.fetchProfile(challenge.challenger).then(setProfile);
   }, [challenge.challenger]);
+
+  // Calculate age
+  const ageMinutes = Math.floor((Date.now() - challenge.timestamp) / 1000 / 60);
+  const ageText = ageMinutes < 1 ? 'Just now' 
+    : ageMinutes < 60 ? `${ageMinutes}m ago` 
+    : `${Math.floor(ageMinutes / 60)}h ago`;
 
   return (
     <div className="bg-gradient-to-br from-red-900/20 to-slate-900/50 border border-red-500/30 rounded-lg p-4">
@@ -269,8 +274,9 @@ function ChallengeCard({
           <p className="text-xs text-slate-500">
             {challenge.challenger.substring(0, 16)}...
           </p>
+          {/* ADD THIS */}
+          <p className="text-xs text-slate-400 mt-1">⏱️ {ageText}</p>
         </div>
-        {/* ADD DECLINE BUTTON IN TOP RIGHT */}
         <button
           onClick={onDecline}
           className="text-slate-500 hover:text-red-400 transition-colors"
