@@ -148,14 +148,24 @@ export const lightningService = new LightningService();
 
 ### 3. Update Components
 
+### How it Works (No Backend)
 Modify the Dashboard and WalletCard components to use real LDK/BDK methods instead of mocked values.
 
-### 4. Add Backend (Optional)
+How It Works (No Backend!):
+Player 1 Browser          Nostr Relays          Player 2 Browser
+     │                         │                        │
+     ├──► fetchFollowers() ────┤                        │
+     │                         │                        │
+     ├──► createChallenge() ───┤                        │
+     │    (kind 30000 event)   │                        │
+     │                         ├────► subscription ─────┤
+     │                         │      (gets challenge)  │
+     │                         │                        │
+Nostr Events Used:
 
-For authentication and cloud backup:
-- Set up Nostr challenge/verify endpoints
-- Store encrypted wallet state
-- Handle webhooks for payment notifications
+Kind 0: User profiles (name, picture)
+Kind 3: Contact lists (followers)
+Kind 30000: Game challenges (custom event type)
 
 ## Technologies
 
