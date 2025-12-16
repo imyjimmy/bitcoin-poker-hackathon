@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NostrAuthService } from '../services/NostrAuthService';
-import { NostrProfile } from '../types';
+import { NostrProfile } from '../types/nostr';
 import WalletCard from '../components/WalletCard';
 import AddBalanceModal from '../components/AddBalanceModal';
 
